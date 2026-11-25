@@ -52,7 +52,7 @@ export const lessons = [
 export const defaultPins = [8, 9, 10];
 export const pwmFromAdc = (adc) => Math.trunc(adc * 255 / 1023);
 
-export function sketch(id, milliseconds, pins) {
+export function sketch(id, milliseconds, pins, inverted = false) {
   if (id === 'blink') return `const int led = LED_BUILTIN;
 const int tempoMs = ${milliseconds};
 
@@ -82,8 +82,8 @@ void setup() {
 
 void loop() {
   // Ao pressionar, D2 é ligado ao GND.
-  bool pressionado = digitalRead(botao) == LOW;
-  if (pressionado) {
+  bool acender = digitalRead(botao) == ${inverted ? 'HIGH' : 'LOW'};
+  if (acender) {
     digitalWrite(led, HIGH);
   } else {
     digitalWrite(led, LOW);

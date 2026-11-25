@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useEffectEvent, useState } from 'react';
+import { useEffect, useEffectEvent, useRef, useState } from 'react';
 import Diagram from './diagram';
 import { defaultPins, lessons, pwmFromAdc, sketch } from './lessons';
 
@@ -37,13 +37,17 @@ function Quiz({ answers, setAnswers }) {
 }
 
 function LiveCode({ lesson, source, activeLine, liveLabel }) {
-  const [copyStatus, setCopyStatus] = useState('');
+  const [copiedSource, setCopiedSource] = useState(null);
+  const [copyFailed, setCopyFailed] = useState(false);
+  const editor = useRef(null);
+  const copyStatus = copiedSource === source ? 'Copiado' : copyFailed ? 'Selecione o código' : 'Copiar';
   async function copy() {
     try {
       await navigator.clipboard.writeText(source);
-      setCopyStatus('Copiado');
+      setCopiedSource(source);
+      setCopyFailed(false);
     } catch {
-      setCopyStatus('Selecione o código para copiar');
+      setCopyFailed(true);
     }
   }
   function download() {
@@ -55,11 +59,11 @@ function LiveCode({ lesson, source, activeLine, liveLabel }) {
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
   return <section className="card code-card" aria-labelledby="code-heading">
-    <div className="card-head"><h2 id="code-heading"><Icon type="code" /> Código do Arduino</h2><div className="code-actions"><button className="small-button" onClick={copy}>{copyStatus || 'Copiar'}</button><button className="small-button" onClick={download} aria-label="Baixar sketch .ino">Baixar .ino</button></div></div>
+    <div className="card-head"><h2 id="code-heading"><Icon type="code" /> Código do Arduino</h2><div className="code-actions"><button className="small-button" onClick={copy}>{copyStatus}</button><button className="small-button" onClick={download} aria-label="Baixar sketch .ino">Baixar .ino</button></div></div>
     <div className="editor">
       <div className="editor-file"><Icon type="file" /> <span>{lesson.file}</span><span className="language">C++</span></div>
-      <pre tabIndex="0" aria-label="Sketch Arduino comentado"><code>{source.split('\n').map((line, i) => <span key={i} className={`code-line ${line.trim().startsWith('//') ? 'comment' : ''} ${line.trim() && line.includes(activeLine) ? 'highlight' : ''}`}><span className="line-no" aria-hidden="true">{i + 1}</span><span>{line || ' '}</span>{'\n'}</span>)}</code></pre>
-      <div className="editor-status"><span className="status-dot" /><span>{liveLabel}</span></div>
+      <pre ref={editor} tabIndex="0" aria-label="Sketch Arduino comentado"><code>{source.split('\n').map((line, i) => <span key={i} className={`code-line ${line.trim().startsWith('//') ? 'comment' : ''} ${line.trim() && line.includes(activeLine) ? 'highlight' : ''}`}><span className="line-no" aria-hidden="true">{i + 1}</span><span>{line || ' '}</span></span>)}</code></pre>
+      <button className="editor-status" onClick={() => editor.current.querySelector('.highlight')?.scrollIntoView({ block: 'nearest', inline: 'nearest' })} aria-label={`Mostrar linha em destaque: ${liveLabel}`}><span className="status-dot" /><span>{liveLabel}</span></button>
     </div>
   </section>;
 }
@@ -71,6 +75,7 @@ function Experiment({ lesson }) {
   const [step, setStep] = useState(0);
   const [running, setRunning] = useState(false);
   const [pressed, setPressed] = useState(false);
+  const [inverted, setInverted] = useState(false);
   const [period, setPeriod] = useState(400);
   const { id } = lesson;
   const isBlink = id === 'blink';
@@ -102,6 +107,7 @@ function Experiment({ lesson }) {
     setMilliseconds(500);
     setAdc(640);
     setPressed(false);
+    setInverted(false);
     setPins(defaultPins);
     setPeriod(400);
   }
@@ -110,7 +116,7 @@ function Experiment({ lesson }) {
   const duty = Math.round(pwm * 100 / 255);
   const selectedIndex = step % pins.length;
   const activePin = pins[selectedIndex];
-  const builtin = (isBlink && step % 2 === 0) || (isButton && pressed);
+  const builtin = (isBlink && step % 2 === 0) || (isButton && pressed !== inverted);
   const activeLine = isPwm ? 'analogWrite(led, pwm)' : isArray ? 'piscarLed(leds[i], tempoMs)' : `digitalWrite(led, ${builtin ? 'HIGH' : 'LOW'})`;
   const liveLabel = isPwm ? `analogWrite(9, ${pwm})` : isArray ? `leds[${selectedIndex}] = ${activePin}` : `digitalWrite(led, ${builtin ? 'HIGH' : 'LOW'})`;
 
@@ -137,9 +143,10 @@ function Experiment({ lesson }) {
           </>}
           {(isButton || isArray) && <div className="actions">
             <button className="primary" aria-pressed={pressed} onClick={changeButton}>{pressed ? 'Soltar botão D2' : 'Pressionar botão D2'}</button>
+            {isButton && <button className="secondary" aria-pressed={inverted} onClick={() => setInverted(!inverted)}>{inverted ? 'Restaurar comparação' : 'Inverter comparação'}</button>}
             {isArray && <button className="secondary" onClick={() => { setPins([...pins].reverse()); setStep(0); }}>Inverter vetor</button>}
           </div>}
-          {isButton && <dl className="measurements" aria-live="polite"><div><dt>Entrada D2</dt><dd>{pressed ? 'LOW' : 'HIGH'}</dd></div><div><dt>LED L</dt><dd>{pressed ? 'Aceso' : 'Apagado'}</dd></div></dl>}
+          {isButton && <dl className="measurements" aria-live="polite"><div><dt>Entrada D2</dt><dd>{pressed ? 'LOW' : 'HIGH'}</dd></div><div><dt>LED L</dt><dd>{builtin ? 'Aceso' : 'Apagado'}</dd></div></dl>}
           {isArray && <><div className="array-values" aria-label="Vetor de pinos">{pins.map((pin, i) => <div className={i === selectedIndex ? 'selected' : ''} key={pin}><span>índice {i}</span><strong>D{pin}</strong></div>)}</div><p className="period">Passo atual de {period} ms</p></>}
           {timed && <div className="actions transport">
             <button className="primary" onClick={() => setRunning(!running)}><Icon type={running ? 'pause' : 'play'} />{running ? 'Pausar' : 'Executar'}</button>
@@ -148,7 +155,7 @@ function Experiment({ lesson }) {
           </div>}
         </div>
       </section>
-      <LiveCode lesson={lesson} source={sketch(id, milliseconds, pins)} activeLine={activeLine} liveLabel={liveLabel} />
+      <LiveCode lesson={lesson} source={sketch(id, milliseconds, pins, inverted)} activeLine={activeLine} liveLabel={liveLabel} />
     </div>
     <section className="card practice" aria-labelledby="practice-title">
       <div><h2 id="practice-title">Teste em aula</h2><p>{lesson.challenge}</p></div>
