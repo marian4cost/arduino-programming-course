@@ -1,5 +1,5 @@
-import Lab from './lab';
+import Presentation from './presentation';
 
 export default function Home() {
-  return <Lab />;
+  return <Presentation />;
 }

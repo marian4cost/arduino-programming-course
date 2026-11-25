@@ -1,0 +1,198 @@
+'use client';
+
+import { useEffect, useEffectEvent, useRef, useState, useSyncExternalStore } from 'react';
+import Diagram from './diagram';
+import Experiment from './experiment';
+import { chapters, slides } from './slides';
+
+const slideNumber = (index) => String(index + 1).padStart(2, '0');
+const kindLabels = { theory: 'Conceito', practice: 'Bancada interativa', question: 'Questão', answer: 'Resposta' };
+
+function subscribeToHash(update) {
+  window.addEventListener('hashchange', update);
+  return () => window.removeEventListener('hashchange', update);
+}
+
+function getSlideIndex() {
+  const index = slides.findIndex(slide => slide.id === window.location.hash.slice(1));
+  return Math.max(0, index);
+}
+
+function Theory({ slide }) {
+  const { title, lead, details, example, caption } = slide.theory;
+  return <article className="theory-slide">
+    <h1>{title}</h1>
+    <p className="slide-lead">{lead}</p>
+    <div className="theory-columns">
+      <dl>{details.map(([label, text]) => <div key={label}><dt>{label}</dt><dd>{text}</dd></div>)}</dl>
+      <figure className="theory-example"><pre tabIndex="0"><code>{example}</code></pre><figcaption>{caption}</figcaption></figure>
+    </div>
+  </article>;
+}
+
+function Question({ slide, selected, onAnswer }) {
+  const [prompt, options] = slide.question;
+  return <article className="assessment-slide">
+    <form>
+      <fieldset>
+        <legend>{prompt}</legend>
+        <div className="assessment-options">{options.map((option, index) => {
+          const letter = String.fromCharCode(65 + index);
+          return <label key={option} className={`assessment-option ${selected === index ? 'chosen' : ''}`}>
+            <input type="radio" name={slide.id} checked={selected === index} onChange={() => onAnswer(index)} />
+            <span className="option-letter" aria-hidden="true">{letter}</span><span>{option}</span>
+          </label>;
+        })}</div>
+      </fieldset>
+    </form>
+    <p className="assessment-hint">A resposta comentada está no próximo slide.</p>
+  </article>;
+}
+
+function Answer({ slide, selected }) {
+  const [prompt, options, correct, explanation] = slide.question;
+  return <article className="assessment-slide answer-slide">
+    <h1>{prompt}</h1>
+    <div className="answer-key">
+      <span className="option-letter" aria-hidden="true">{String.fromCharCode(65 + correct)}</span>
+      <div><p>Resposta correta</p><h2>{options[correct]}</h2></div>
+    </div>
+    <p className="slide-lead">{explanation}</p>
+    {selected !== undefined && <p className="answer-selection">{selected === correct ? 'Você acertou.' : `Sua escolha foi ${options[selected]}.`}</p>}
+  </article>;
+}
+
+function Cover({ onStart }) {
+  return <article className="cover-slide">
+    <div>
+      <p className="cover-label">Minicurso com Arduino Uno</p>
+      <h1>Programação<br />para Arduino</h1>
+      <p>Do primeiro LED aos vetores, com uma bancada e questões ao longo da apresentação.</p>
+      <button className="cover-start" onClick={onStart}>Começar apresentação</button>
+    </div>
+    <Diagram lesson="arrays" activePin={9} pressed={false} running={false} builtin={false} />
+  </article>;
+}
+
+function Materials() {
+  return <article className="material-slide">
+    <h1>Materiais da aula</h1>
+    <p className="slide-lead">Plano, slides e sketches para acompanhar as práticas com Arduino Uno.</p>
+    <div className="card resources">
+      <a href="./materiais/plano_de_ensino_arduino.docx" download>Plano de ensino e atividades <span>DOCX</span></a>
+      <a href="./materiais/programacao_para_arduino.pptx" download>Slides de programação para Arduino <span>PPTX</span></a>
+      <a href="./materiais/sketches_minicurso_arduino.zip" download>Sketches do minicurso <span>ZIP</span></a>
+      <a href="https://www.youtube.com/playlist?list=PLMAnnvw9y2UD3oDPTSq37kykjlOsob0pP">Playlist base do EngEasier <span>YOUTUBE</span></a>
+    </div>
+  </article>;
+}
+
+export default function Presentation() {
+  const index = useSyncExternalStore(subscribeToHash, getSlideIndex, () => 0);
+  const slide = slides[index];
+  const [answers, setAnswers] = useState({});
+  const [fullscreen, setFullscreen] = useState(false);
+  const [fullscreenMessage, setFullscreenMessage] = useState('');
+  const stage = useRef(null);
+  const menu = useRef(null);
+  const previousSlide = useRef(slide.id);
+  const lastIndex = slides.length - 1;
+
+  function goTo(target) {
+    if (target < 0 || target > lastIndex || target === index) return;
+    menu.current.open = false;
+    window.location.hash = slides[target].id;
+  }
+
+  async function toggleFullscreen() {
+    try {
+      if (document.fullscreenElement) await document.exitFullscreen();
+      else await document.documentElement.requestFullscreen();
+      setFullscreenMessage('');
+    } catch {
+      setFullscreenMessage('O navegador não conseguiu abrir a tela cheia.');
+    }
+  }
+
+  const handleKey = useEffectEvent(event => {
+    if (event.defaultPrevented || event.altKey || event.metaKey || event.ctrlKey || event.shiftKey) return;
+    if (event.target.closest?.('input, textarea, select, [contenteditable], pre, .deck-menu')) return;
+    if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
+      event.preventDefault();
+      goTo(index + (event.key === 'ArrowLeft' ? -1 : 1));
+    }
+  });
+
+  useEffect(() => {
+    function updateFullscreen() { setFullscreen(Boolean(document.fullscreenElement)); }
+    function onKeydown(event) { handleKey(event); }
+    document.addEventListener('fullscreenchange', updateFullscreen);
+    document.addEventListener('keydown', onKeydown);
+    return () => {
+      document.removeEventListener('fullscreenchange', updateFullscreen);
+      document.removeEventListener('keydown', onKeydown);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (previousSlide.current === slide.id) return;
+    previousSlide.current = slide.id;
+    window.scrollTo({ top: 0, behavior: 'instant' });
+    stage.current.focus({ preventScroll: true });
+  }, [slide.id]);
+
+  function slideLink(item, target) {
+    return <a href={`#${item.id}`} key={item.id} aria-current={index === target ? 'page' : undefined} onClick={event => {
+      if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+      event.preventDefault();
+      menu.current.open = false;
+      goTo(target);
+    }}>{item.kind === 'theory' ? item.title : item.kind === 'practice' ? 'Bancada' : item.title}</a>;
+  }
+
+  const selected = answers[slide.questionId];
+  return <div className="presentation">
+    <a className="skip" href="#main-content" onClick={event => { event.preventDefault(); stage.current.focus(); }}>Ir para o slide</a>
+    <header className="deck-toolbar">
+      <a className="brand" href="#inicio"><span className="brand-icon" aria-hidden="true">▦</span><span>Arduino<span className="brand-accent">Lab</span></span></a>
+      <div className="toolbar-actions">
+        <details className="deck-menu" ref={menu}>
+          <summary>Roteiro</summary>
+          <nav aria-label="Roteiro dos slides">
+            {slideLink(slides[0], 0)}
+            {chapters.map(chapter => <section key={chapter.id}>
+              <h2>{chapter.label}</h2>
+              {chapter.slides.map(item => slideLink(item, slides.indexOf(item)))}
+            </section>)}
+            {slideLink(slides[lastIndex], lastIndex)}
+          </nav>
+        </details>
+        <button className="presentation-mode" onClick={toggleFullscreen} aria-pressed={fullscreen}>⛶ <span>{fullscreen ? 'Sair da tela cheia' : 'Tela cheia'}</span></button>
+      </div>
+      {fullscreenMessage && <p className="fullscreen-message" role="status">{fullscreenMessage}</p>}
+    </header>
+    <main id="main-content" className={`deck-stage deck-${slide.kind}`} ref={stage} tabIndex={-1} aria-label={`Slide ${index + 1} de ${slides.length}`}>
+      <div className="slide-content" key={slide.id}>
+        {slide.lesson && <p className="slide-context"><span>{slide.lesson.concept}</span><span>{kindLabels[slide.kind]}</span></p>}
+        {slide.kind === 'cover' && <Cover onStart={() => goTo(1)} />}
+        {slide.kind === 'theory' && <Theory slide={slide} />}
+        {slide.kind === 'practice' && <Experiment lesson={slide.lesson} />}
+        {slide.kind === 'question' && <Question slide={slide} selected={selected} onAnswer={value => setAnswers(current => ({ ...current, [slide.questionId]: value }))} />}
+        {slide.kind === 'answer' && <Answer slide={slide} selected={selected} />}
+        {slide.kind === 'materials' && <Materials />}
+      </div>
+    </main>
+    <footer className="deck-footer">
+      <div className="deck-position">
+        <output aria-live="polite" aria-label="Posição na apresentação">{slideNumber(index)} <span>/ {slides.length}</span></output>
+        <progress max={slides.length} value={index + 1} aria-label="Progresso da apresentação" />
+      </div>
+      <nav aria-label="Navegação da apresentação">
+        <button className="secondary" disabled={index === 0} onClick={() => goTo(index - 1)}>Anterior</button>
+        {index < lastIndex
+          ? <button className="primary" onClick={() => goTo(index + 1)}>{slide.kind === 'question' ? 'Ver resposta' : 'Próximo slide'}</button>
+          : <button className="primary" onClick={() => { setAnswers({}); goTo(0); }}>Voltar ao início</button>}
+      </nav>
+    </footer>
+  </div>;
+}
