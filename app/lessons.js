@@ -2,16 +2,16 @@ export const lessons = [
   {
     id: 'blink', icon: 'led', label: 'Primeiro LED', concept: 'Saída digital',
     title: 'Primeiro LED',
-    description: 'Altere o intervalo e acompanhe os estados HIGH e LOW no LED L da placa.',
+    description: 'Altere o intervalo e acompanhe os estados HIGH e LOW no LED externo.',
     file: 'blink.ino',
     everyday: 'Um indicador de máquina em funcionamento pode piscar para chamar a atenção.',
-    wiring: 'O LED L já faz parte do Uno. O sketch usa LED_BUILTIN, que referencia o pino digital 13.',
+    wiring: 'Ligue D8 a um resistor de 220 a 330 Ω. Ligue o resistor ao ânodo do LED e o cátodo ao GND.',
     challenge: 'Preveja quanto dura um ciclo com 200 ms. Ajuste o controle e verifique se cada ciclo tem duas esperas.',
   },
   {
     id: 'button', icon: 'button', label: 'Botão digital', concept: 'Entrada digital',
     title: 'Botão digital',
-    description: 'Pressione o botão virtual e compare a leitura do pino D2 com o estado do LED L.',
+    description: 'Pressione o botão virtual e compare a leitura do pino D2 com o estado do LED externo.',
     file: 'botao.ino',
     everyday: 'O botão de um elevador informa um pedido. Uma lâmpada separada confirma que o pedido foi registrado.',
     wiring: 'Ligue o botão entre D2 e GND, usando terminais de lados opostos do botão. O pull-up interno mantém D2 em HIGH quando o botão está solto.',
@@ -42,11 +42,11 @@ export const defaultPins = [8, 9, 10];
 export const pwmFromAdc = (adc) => Math.trunc(adc * 255 / 1023);
 
 export function sketch(id, milliseconds, pins, inverted = false) {
-  if (id === 'blink') return `const int led = LED_BUILTIN;
+  if (id === 'blink') return `const int led = 8;
 const int tempoMs = ${milliseconds};
 
 void setup() {
-  // Configura o LED L como saída.
+  // Configura D8 para controlar o LED externo.
   pinMode(led, OUTPUT);
 }
 
@@ -61,7 +61,7 @@ void loop() {
 }`;
 
   if (id === 'button') return `const int botao = 2;
-const int led = LED_BUILTIN;
+const int led = 8;
 
 void setup() {
   // Com o botão solto, D2 lê HIGH.

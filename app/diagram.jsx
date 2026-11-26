@@ -11,6 +11,8 @@ const traces = {
     [[433, 79], [535, 79], [535, 270], [381, 270]],
   ],
   button: [
+    [[270, 102], [336, 102], [336, 79], [383, 79]],
+    [[433, 79], [550, 79], [550, 276], [291, 276], [291, 203], [270, 203]],
     [[270, 141], [322, 141], [322, 196], [421, 196]],
     [[270, 203], [299, 203], [299, 245], [421, 245]],
   ],
@@ -24,19 +26,22 @@ const traces = {
     [[270, 163], [280, 163], [280, 269], [421, 269]],
     [[480, 269], [510, 269], [510, 232]],
   ],
-  blink: [],
+  blink: [
+    [[270, 102], [336, 102], [336, 127], [383, 127]],
+    [[433, 127], [517, 127], [517, 230], [294, 230], [294, 203], [270, 203]],
+  ],
 };
 const traceColors = {
   pwm: ['#a5a1ff', '#f9828c', '#66879b', '#4ed6f0', '#66879b'],
-  button: ['#a5a1ff', '#66879b'],
+  button: ['#f9a995', '#66879b', '#a5a1ff', '#66879b'],
   arrays: ['#f78d9b', '#eeb65e', '#63dfae', '#66879b', '#66879b', '#66879b', '#a5a1ff', '#66879b'],
-  blink: [],
+  blink: ['#f9a995', '#66879b'],
 };
 const pinPositions = {
   pwm: [[109, 'D9'], [141, 'A0'], [185, '5 V'], [203, 'GND']],
-  button: [[141, 'D2'], [203, 'GND']],
+  button: [[102, 'D8'], [141, 'D2'], [203, 'GND']],
   arrays: [[85, 'D8'], [109, 'D9'], [132, 'D10'], [163, 'D2'], [203, 'GND']],
-  blink: [],
+  blink: [[102, 'D8'], [203, 'GND']],
 };
 
 function Wires({ lesson }) {
@@ -64,10 +69,10 @@ function Led({ x, y, color, level, label }) {
   </div>;
 }
 
-export default function Diagram({ lesson, adc, pwm, builtin, pressed, activePin, running }) {
+export default function Diagram({ lesson, adc, pwm, ledOn, pressed, activePin, running }) {
   const state = lesson === 'pwm' ? `LED amarelo em D9 com PWM ${pwm} de 255`
     : lesson === 'arrays' ? (running ? `LED ativo no pino D${activePin}` : `LED do passo no pino D${activePin}`)
-    : `LED L ${builtin ? 'aceso' : 'apagado'}`;
+    : `LED externo em D8 ${ledOn ? 'aceso' : 'apagado'}`;
   return <figure className="diagram" aria-label={state}>
     <div className="schematic">
       <Wires lesson={lesson} />
@@ -75,7 +80,6 @@ export default function Diagram({ lesson, adc, pwm, builtin, pressed, activePin,
         <div className="usb" /><div className="barrel" /><div className="header top" /><div className="header bottom" />
         <div className="board-logo">UNO<span>ARDUINO</span></div>
         <div className="chip" /><div className="board-cap" /><div className="board-cap second" />
-        <div className={`builtin-light ${builtin ? 'on' : ''}`}><i /> L</div>
       </div>
       {pinPositions[lesson].map(([y, label]) => <span key={label} className="pin" style={{ '--y': y }} aria-hidden="true">{label}</span>)}
       {lesson === 'pwm' && <>
@@ -85,6 +89,7 @@ export default function Diagram({ lesson, adc, pwm, builtin, pressed, activePin,
           <span>POTENCIÔMETRO</span>
         </div>
       </>}
+      {(lesson === 'blink' || lesson === 'button') && <Led x={383} y={lesson === 'blink' ? 127 : 79} color="#ff9b75" level={Number(ledOn)} label="LED EXTERNO" />}
       {lesson === 'button' && <div className={`switch-part ${pressed ? 'held' : ''}`} aria-hidden="true"><i /><span>BOTÃO D2</span></div>}
       {lesson === 'arrays' && <>
         <Led x={385} y={68} color="#fc7c89" level={Number(activePin === 8)} label="D8" />
@@ -92,7 +97,6 @@ export default function Diagram({ lesson, adc, pwm, builtin, pressed, activePin,
         <Led x={385} y={190} color="#61e7af" level={Number(activePin === 10)} label="D10" />
         <div className={`switch-part mini ${pressed ? 'held' : ''}`} aria-hidden="true"><i /><span>BOTÃO D2</span></div>
       </>}
-      {lesson === 'blink' && <span className={`builtin-caption ${builtin ? 'on' : ''}`} aria-hidden="true"><i />LED L · D13<br /><strong>{builtin ? 'HIGH' : 'LOW'}</strong></span>}
     </div>
   </figure>;
 }

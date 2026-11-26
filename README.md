@@ -30,3 +30,7 @@ O sumário abre os temas. A aula começa por entradas, saídas e tipos antes dos
 Cada experimento mostra o sketch Arduino comentado e permite baixar o código como .ino. Crie uma pasta com o mesmo nome do arquivo antes de abri-lo na Arduino IDE. Os circuitos são representações didáticas das conexões e dos estados do programa. As escolhas permanecem durante a navegação na sessão. O slide seguinte mostra a correção comentada.
 
 O slide Materiais da aula reúne o plano de ensino, a apresentação editável e os sketches do minicurso. A navegação por tópicos, o modo de tela cheia e a correção dos questionários foram inspirados na [apresentação de Projeto de Banco de Dados de Flaygner Matos Rebouças](https://flaygner.com.br/projeto-banco-de-dados/index.html).
+
+## Desafio final
+
+Na última atividade, a bancada permite adicionar e posicionar peças, ligar terminais e verificar o circuito. A aba de código executa localmente um subconjunto do Arduino C++ usado na aula. Ela simula D2, A0, os LEDs em D9 e D10 e o Monitor Serial. O arquivo .ino pode ser baixado para a Arduino IDE.

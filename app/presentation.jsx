@@ -2,6 +2,7 @@
 
 import { useEffect, useEffectEvent, useRef, useState, useSyncExternalStore } from 'react';
 import Diagram from './diagram';
+import Challenge from './challenge/challenge';
 import Experiment from './experiment';
 import SerialBench from './serial-bench';
 import SketchCode from './sketch-code';
@@ -94,6 +95,9 @@ function Summary({ onSelect }) {
           <strong>{chapter.title}</strong><span>{chapter.summary}</span>
         </button>
       </li>)}
+      <li><button onClick={() => onSelect(slides.findIndex(slide => slide.kind === 'challenge'))}>
+        <strong>Desafio final</strong><span>Monte e programe um painel de sinalização na bancada livre.</span>
+      </button></li>
     </ol>
   </article>;
 }
@@ -115,7 +119,7 @@ function Cover({ onStart }) {
       <p className="presenter-name">Mariana da Costa Lisboa</p>
       <button className="cover-start" onClick={onStart}>Começar apresentação</button>
     </div>
-    <Diagram lesson="arrays" activePin={9} pressed={false} running={false} builtin={false} />
+    <Diagram lesson="arrays" activePin={9} pressed={false} running={false} />
   </article>;
 }
 
@@ -229,7 +233,7 @@ export default function Presentation() {
               <h2>{chapter.title}</h2>
               {chapter.slides.map(item => slideLink(item, slides.indexOf(item)))}
             </section>)}
-            {slides.slice(-2).map((item, offset) => slideLink(item, lastIndex - 1 + offset))}
+            {slides.slice(-3).map((item, offset) => slideLink(item, lastIndex - 2 + offset))}
           </nav>
         </details>
         <button className="presentation-mode" onClick={toggleFullscreen} aria-pressed={fullscreen}>⛶ <span>{fullscreen ? 'Sair da tela cheia' : 'Tela cheia'}</span></button>
@@ -259,6 +263,7 @@ export default function Presentation() {
             {panel.kind === 'practice' && <Experiment lesson={panel.lesson} />}
             {panel.kind === 'question' && <Question slide={panel} selected={selected} onAnswer={value => setAnswers(current => ({ ...current, [panel.questionId]: value }))} />}
             {panel.kind === 'answer' && <Answer slide={panel} selected={selected} />}
+            {panel.kind === 'challenge' && <Challenge active={!leaving} />}
             {panel.kind === 'materials' && <Materials />}
             {panel.kind === 'closing' && <Closing />}
           </div>;

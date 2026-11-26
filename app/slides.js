@@ -31,10 +31,10 @@ const course = [
         lead: 'Um pino em modo digital reconhece dois níveis lógicos. Em um Uno clássico, ao escrever uma saída, HIGH fica perto de 5 V e LOW perto de 0 V em relação ao GND.',
         details: [
           ['Na entrada', 'A placa classifica a tensão medida como HIGH ou LOW. Tensões intermediárias próximas aos limites podem dar uma leitura indefinida.'],
-          ['Na saída', 'O código escolhe o nível do pino. No LED L do Uno, HIGH acende e LOW apaga. A ligação do circuito define o que cada nível faz.'],
+          ['Na saída', 'O código escolhe o nível do pino. Com um LED externo ligado entre D8 e GND por um resistor, HIGH acende e LOW apaga. A ligação do circuito define o que cada nível faz.'],
         ],
         table: {
-          headers: ['Nível', 'Saída digital no Uno', 'LED L'],
+          headers: ['Nível', 'Saída digital no Uno', 'LED externo em D8'],
           rows: [['HIGH', 'Perto de 5 V', 'Aceso'], ['LOW', 'Perto de 0 V', 'Apagado']],
         },
         everyday: 'Uma placa de aberto ou fechado comunica dois estados. Você precisa saber qual estado está associado a cada posição da placa.',
@@ -85,7 +85,7 @@ const course = [
         title: 'O primeiro sketch',
         lead: 'O Arduino executa setup() uma vez após ligar ou reiniciar. Depois repete loop() enquanto estiver ligado.',
         details: [
-          ['Configuração', 'pinMode prepara o pino indicado pela constante led como saída. LED_BUILTIN identifica o LED da própria placa.'],
+          ['Configuração', 'pinMode prepara o pino indicado pela constante led como saída. A constante led identifica D8, ligado ao LED externo por um resistor em série.'],
           ['Estado e tempo', 'digitalWrite altera o nível da saída. delay mantém o estado pelo número de milissegundos informado antes de ir à próxima instrução.'],
         ],
         code: example('blink'),
@@ -125,7 +125,7 @@ const course = [
         ],
         code: conditionSketch,
         file: 'condicoes.ino',
-        caption: 'Para testar os três casos, ligue um potenciômetro com o terminal central em A0 e as extremidades em 5 V e GND. O sketch liga o LED L abaixo do limite de escuro.',
+        caption: 'Para testar os três casos, ligue um potenciômetro com o terminal central em A0 e as extremidades em 5 V e GND. Ligue D8 ao ânodo de um LED externo por um resistor de 220 a 330 Ω e o cátodo ao GND. O LED acende abaixo do limite de escuro.',
         everyday: 'Uma luminária automática pode acender no escuro, sinalizar meia-luz e ficar apagada de dia. O programa verifica as condições na ordem.',
       },
       { id: 'button-pratica', kind: 'practice', title: 'Botão digital', lesson: experiments.button },
@@ -256,6 +256,7 @@ export const slides = [
   { id: 'inicio', kind: 'cover', title: 'Programação para Arduino' },
   { id: 'sumario', kind: 'summary', title: 'Sumário da aula' },
   ...chapters.flatMap(chapter => chapter.slides),
+  { id: 'desafio-final', kind: 'challenge', title: 'Desafio final' },
   { id: 'materiais', kind: 'materials', title: 'Materiais da aula' },
   { id: 'encerramento', kind: 'closing', title: 'Obrigada pela atenção' },
 ];

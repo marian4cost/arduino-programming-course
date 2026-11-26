@@ -102,7 +102,7 @@ void loop() {
 }`;
 
 export const conditionSketch = `const int pinoSensor = A0;
-const int pinoLed = LED_BUILTIN;
+const int pinoLed = 8;  // LED externo com resistor em série.
 const int limiteEscuro = 300;
 const int limiteMeiaLuz = 700;
 

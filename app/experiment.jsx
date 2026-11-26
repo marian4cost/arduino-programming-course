@@ -71,9 +71,9 @@ export default function Experiment({ lesson }) {
   const duty = Math.round(pwm * 100 / 255);
   const selectedIndex = step % pins.length;
   const activePin = pins[selectedIndex];
-  const builtin = (isBlink && step % 2 === 0) || (isButton && pressed !== inverted);
-  const activeLine = isPwm ? 'analogWrite(led, pwm)' : isArray ? 'piscarLed(leds[i], tempoMs)' : `digitalWrite(led, ${builtin ? 'HIGH' : 'LOW'})`;
-  const liveLabel = isPwm ? `analogWrite(9, ${pwm})` : isArray ? `leds[${selectedIndex}] = ${activePin}` : `digitalWrite(led, ${builtin ? 'HIGH' : 'LOW'})`;
+  const ledOn = (isBlink && step % 2 === 0) || (isButton && pressed !== inverted);
+  const activeLine = isPwm ? 'analogWrite(led, pwm)' : isArray ? 'piscarLed(leds[i], tempoMs)' : `digitalWrite(led, ${ledOn ? 'HIGH' : 'LOW'})`;
+  const liveLabel = isPwm ? `analogWrite(9, ${pwm})` : isArray ? `leds[${selectedIndex}] = ${activePin}` : `digitalWrite(led, ${ledOn ? 'HIGH' : 'LOW'})`;
 
   return <>
     <div className="page-title">
@@ -82,7 +82,7 @@ export default function Experiment({ lesson }) {
     <div className="workbench">
       <section className="card circuit-card" aria-labelledby={`${panelId}-circuit-heading`}>
         <div className="card-head"><h2 id={`${panelId}-circuit-heading`}><Icon type="circuit" /> Circuito interativo</h2><span className="board-name">Arduino Uno</span></div>
-        <Diagram lesson={id} adc={adc} pwm={pwm} builtin={builtin} pressed={pressed} activePin={activePin} running={running} />
+        <Diagram lesson={id} adc={adc} pwm={pwm} ledOn={ledOn} pressed={pressed} activePin={activePin} running={running} />
         <div className="controls">
           {isPwm && <>
             <div className="control-label"><label htmlFor={`${panelId}-pot`}>Potenciômetro</label><output htmlFor={`${panelId}-pot`}>{(adc / 1023 * 5).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} V</output></div>
@@ -93,14 +93,14 @@ export default function Experiment({ lesson }) {
           {isBlink && <>
             <div className="control-label"><label htmlFor={`${panelId}-interval`}>Intervalo do Blink</label><output htmlFor={`${panelId}-interval`}>{milliseconds} ms</output></div>
             <input id={`${panelId}-interval`} type="range" min="150" max="1200" step="50" value={milliseconds} onChange={event => setMilliseconds(Number(event.target.value))} style={{ '--fill': `${(milliseconds - 150) / 1050 * 100}%` }} />
-            <dl className="measurements"><div><dt>Saída D13</dt><dd>{builtin ? 'HIGH' : 'LOW'}</dd></div><div><dt>Ciclo completo</dt><dd>{2 * milliseconds}<span> ms</span></dd></div></dl>
+            <dl className="measurements"><div><dt>Saída D8</dt><dd>{ledOn ? 'HIGH' : 'LOW'}</dd></div><div><dt>Ciclo completo</dt><dd>{2 * milliseconds}<span> ms</span></dd></div></dl>
           </>}
           {(isButton || isArray) && <div className="actions">
             <button className="primary" aria-pressed={pressed} onClick={changeButton}>{pressed ? 'Soltar botão D2' : 'Pressionar botão D2'}</button>
             {isButton && <button className="secondary" aria-pressed={inverted} onClick={() => setInverted(!inverted)}>{inverted ? 'Restaurar comparação' : 'Inverter comparação'}</button>}
             {isArray && <button className="secondary" onClick={reverseOrder}>Inverter vetor</button>}
           </div>}
-          {isButton && <dl className="measurements" aria-live="polite"><div><dt>Entrada D2</dt><dd>{pressed ? 'LOW' : 'HIGH'}</dd></div><div><dt>LED L</dt><dd>{builtin ? 'Aceso' : 'Apagado'}</dd></div></dl>}
+          {isButton && <dl className="measurements" aria-live="polite"><div><dt>Entrada D2</dt><dd>{pressed ? 'LOW' : 'HIGH'}</dd></div><div><dt>LED externo</dt><dd>{ledOn ? 'Aceso' : 'Apagado'}</dd></div></dl>}
           {isArray && <><div className="array-values" aria-label="Vetor de pinos">{pins.map((pin, i) => <div className={i === selectedIndex ? 'selected' : ''} key={pin}><span>índice {i}</span><strong>D{pin}</strong></div>)}</div><p className="period">Passo atual de {period} ms</p>{priorPins && <p className="period" role="status">[{priorPins.join(', ')}] virou [{pins.join(', ')}]. A sequência voltou ao índice 0.</p>}</>}
           {timed && <div className="actions transport">
             <button className="primary" onClick={() => setRunning(!running)}><Icon type={running ? 'pause' : 'play'} />{running ? 'Pausar' : 'Executar'}</button>
