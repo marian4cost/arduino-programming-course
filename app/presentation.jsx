@@ -144,10 +144,11 @@ export default function Presentation() {
   const stage = useRef(null);
   const menu = useRef(null);
   const previousSlide = useRef(slide.id);
-  const [motion, setMotion] = useState({ index, direction: '' });
-  if (motion.index !== index) {
-    setMotion({ index, direction: index > motion.index ? 'forward' : 'back' });
+  const [turn, setTurn] = useState({ to: index, from: null });
+  if (turn.to !== index) {
+    setTurn({ to: index, from: turn.to });
   }
+  const direction = turn.from === null ? undefined : index > turn.from ? 'forward' : 'back';
   const lastIndex = slides.length - 1;
 
   function goTo(target) {
@@ -193,6 +194,19 @@ export default function Presentation() {
     stage.current.focus({ preventScroll: true });
   }, [slide.id]);
 
+  useEffect(() => {
+    if (turn.from === null) return;
+    const fallback = window.setTimeout(() => setTurn(current =>
+      current === turn ? { to: turn.to, from: null } : current
+    ), 700);
+    return () => window.clearTimeout(fallback);
+  }, [turn]);
+
+  function finishTurn(event) {
+    if (event.target !== event.currentTarget || turn.from === null) return;
+    setTurn({ to: index, from: null });
+  }
+
   function slideLink(item, target) {
     return <a href={`#${item.id}`} key={item.id} aria-current={index === target ? 'page' : undefined} onClick={event => {
       if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
@@ -202,7 +216,6 @@ export default function Presentation() {
     }}>{item.kind === 'theory' ? item.title : item.kind === 'practice' ? 'Bancada' : item.title}</a>;
   }
 
-  const selected = answers[slide.questionId];
   return <div className="presentation">
     <a className="skip" href="#main-content" onClick={event => { event.preventDefault(); stage.current.focus(); }}>Ir para o slide</a>
     <header className="deck-toolbar">
@@ -223,19 +236,33 @@ export default function Presentation() {
       </div>
       {fullscreenMessage && <p className="fullscreen-message" role="status">{fullscreenMessage}</p>}
     </header>
-    <main id="main-content" className={`deck-stage deck-${slide.kind}`} ref={stage} tabIndex={-1} aria-label={`Slide ${index + 1} de ${slides.length}`}>
-      <div className="slide-content" key={slide.id} data-motion={motion.direction || undefined}>
-        {slide.topic && <p className="slide-context"><span>{slide.topic}</span><span>{kindLabels[slide.kind]}</span></p>}
-        {slide.kind === 'cover' && <Cover onStart={() => goTo(1)} />}
-        {slide.kind === 'summary' && <Summary onSelect={goTo} />}
-        {slide.kind === 'theory' && <Theory slide={slide} />}
-        {slide.kind === 'serial' && <SerialBench timedExample />}
-        {slide.kind === 'repetition' && <SerialBench />}
-        {slide.kind === 'practice' && <Experiment lesson={slide.lesson} />}
-        {slide.kind === 'question' && <Question slide={slide} selected={selected} onAnswer={value => setAnswers(current => ({ ...current, [slide.questionId]: value }))} />}
-        {slide.kind === 'answer' && <Answer slide={slide} selected={selected} />}
-        {slide.kind === 'materials' && <Materials />}
-        {slide.kind === 'closing' && <Closing />}
+    <main id="main-content" className="deck-stage" ref={stage} tabIndex={-1} aria-label={`Slide ${index + 1} de ${slides.length}`}>
+      <div className="slide-viewport" data-direction={direction}>
+        {(turn.from === null ? [index] : [turn.from, index]).map(panelIndex => {
+          const panel = slides[panelIndex];
+          const leaving = panelIndex !== index;
+          const selected = answers[panel.questionId];
+          return <div
+            className={`slide-content deck-${panel.kind}`}
+            key={panel.id}
+            data-phase={leaving ? 'outgoing' : 'current'}
+            inert={leaving || undefined}
+            aria-hidden={leaving || undefined}
+            onAnimationEnd={leaving ? undefined : finishTurn}
+          >
+            {panel.topic && <p className="slide-context"><span>{panel.topic}</span><span>{kindLabels[panel.kind]}</span></p>}
+            {panel.kind === 'cover' && <Cover onStart={() => goTo(1)} />}
+            {panel.kind === 'summary' && <Summary onSelect={goTo} />}
+            {panel.kind === 'theory' && <Theory slide={panel} />}
+            {panel.kind === 'serial' && <SerialBench timedExample />}
+            {panel.kind === 'repetition' && <SerialBench />}
+            {panel.kind === 'practice' && <Experiment lesson={panel.lesson} />}
+            {panel.kind === 'question' && <Question slide={panel} selected={selected} onAnswer={value => setAnswers(current => ({ ...current, [panel.questionId]: value }))} />}
+            {panel.kind === 'answer' && <Answer slide={panel} selected={selected} />}
+            {panel.kind === 'materials' && <Materials />}
+            {panel.kind === 'closing' && <Closing />}
+          </div>;
+        })}
       </div>
     </main>
     <footer className="deck-footer">

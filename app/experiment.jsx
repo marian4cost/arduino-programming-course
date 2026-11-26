@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useEffectEvent, useState } from 'react';
+import { useId, useEffect, useEffectEvent, useState } from 'react';
 import Diagram from './diagram';
 import SketchCode from './sketch-code';
 import { defaultPins, pwmFromAdc, sketch } from './lessons';
@@ -14,6 +14,7 @@ function Icon({ type }) {
 }
 
 export default function Experiment({ lesson }) {
+  const panelId = useId();
   const [adc, setAdc] = useState(640);
   const [milliseconds, setMilliseconds] = useState(500);
   const [pins, setPins] = useState(defaultPins);
@@ -79,19 +80,19 @@ export default function Experiment({ lesson }) {
       <h1>{lesson.title}</h1><p>{lesson.description}</p>
     </div>
     <div className="workbench">
-      <section className="card circuit-card" aria-labelledby="circuit-heading">
-        <div className="card-head"><h2 id="circuit-heading"><Icon type="circuit" /> Circuito interativo</h2><span className="board-name">Arduino Uno</span></div>
+      <section className="card circuit-card" aria-labelledby={`${panelId}-circuit-heading`}>
+        <div className="card-head"><h2 id={`${panelId}-circuit-heading`}><Icon type="circuit" /> Circuito interativo</h2><span className="board-name">Arduino Uno</span></div>
         <Diagram lesson={id} adc={adc} pwm={pwm} builtin={builtin} pressed={pressed} activePin={activePin} running={running} />
         <div className="controls">
           {isPwm && <>
-            <div className="control-label"><label htmlFor="pot">Potenciômetro</label><output htmlFor="pot">{(adc / 1023 * 5).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} V</output></div>
-            <input id="pot" type="range" min="0" max="1023" value={adc} onChange={event => setAdc(Number(event.target.value))} style={{ '--fill': `${adc / 1023 * 100}%` }} />
+            <div className="control-label"><label htmlFor={`${panelId}-pot`}>Potenciômetro</label><output htmlFor={`${panelId}-pot`}>{(adc / 1023 * 5).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} V</output></div>
+            <input id={`${panelId}-pot`} type="range" min="0" max="1023" value={adc} onChange={event => setAdc(Number(event.target.value))} style={{ '--fill': `${adc / 1023 * 100}%` }} />
             <div className="range-labels"><span>0 V</span><span>5 V</span></div>
             <dl className="measurements"><div><dt>Leitura A0</dt><dd>{adc}<span> / 1023</span></dd></div><div><dt>PWM D9</dt><dd>{pwm}<span> / 255</span></dd></div><div><dt>Tempo em HIGH</dt><dd>{duty}<span>%</span></dd></div></dl>
           </>}
           {isBlink && <>
-            <div className="control-label"><label htmlFor="interval">Intervalo do Blink</label><output htmlFor="interval">{milliseconds} ms</output></div>
-            <input id="interval" type="range" min="150" max="1200" step="50" value={milliseconds} onChange={event => setMilliseconds(Number(event.target.value))} style={{ '--fill': `${(milliseconds - 150) / 1050 * 100}%` }} />
+            <div className="control-label"><label htmlFor={`${panelId}-interval`}>Intervalo do Blink</label><output htmlFor={`${panelId}-interval`}>{milliseconds} ms</output></div>
+            <input id={`${panelId}-interval`} type="range" min="150" max="1200" step="50" value={milliseconds} onChange={event => setMilliseconds(Number(event.target.value))} style={{ '--fill': `${(milliseconds - 150) / 1050 * 100}%` }} />
             <dl className="measurements"><div><dt>Saída D13</dt><dd>{builtin ? 'HIGH' : 'LOW'}</dd></div><div><dt>Ciclo completo</dt><dd>{2 * milliseconds}<span> ms</span></dd></div></dl>
           </>}
           {(isButton || isArray) && <div className="actions">
@@ -110,8 +111,8 @@ export default function Experiment({ lesson }) {
       </section>
       <SketchCode file={lesson.file} source={sketch(id, milliseconds, pins, inverted)} activeLine={activeLine} liveLabel={liveLabel} />
     </div>
-    <section className="card practice" aria-labelledby="practice-title">
-      <div><h2 id="practice-title">Teste em aula</h2><p>{lesson.challenge}</p></div>
+    <section className="card practice" aria-labelledby={`${panelId}-practice-title`}>
+      <div><h2 id={`${panelId}-practice-title`}>Teste em aula</h2><p>{lesson.challenge}</p></div>
       <details><summary>Montagem na bancada</summary><p>{lesson.wiring}</p></details>
     </section>
     <aside className="everyday"><strong>No dia a dia</strong><p>{lesson.everyday}</p></aside>

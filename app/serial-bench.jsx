@@ -1,10 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useId, useState } from 'react';
 import SketchCode from './sketch-code';
 import { repetitionSketch, serialSketch } from './teaching-sketches';
 
 export default function SerialBench({ timedExample = false }) {
+  const panelId = useId();
   const [structure, setStructure] = useState('for');
   const [limit, setLimit] = useState(3);
   const [step, setStep] = useState(0);
@@ -30,8 +31,8 @@ export default function SerialBench({ timedExample = false }) {
       <p>{timedExample ? 'Cada clique mostra uma amostra. No Arduino, o sketch imprime sozinho a cada 500 ms.' : 'Preveja a última linha. Compare a saída das duas estruturas, inclusive quando limite é zero.'}</p>
     </div>
     <div className="workbench serial-workbench">
-      <section className="card serial-card" aria-labelledby="serial-heading">
-        <div className="card-head"><h2 id="serial-heading">Monitor Serial simulado</h2><span className="board-name">9600 baud</span></div>
+      <section className="card serial-card" aria-labelledby={`${panelId}-serial-heading`}>
+        <div className="card-head"><h2 id={`${panelId}-serial-heading`}>Monitor Serial simulado</h2><span className="board-name">9600 baud</span></div>
         <ol className="serial-output" aria-label="Linhas recebidas">
           {lines.length === 0 && <li className="serial-empty">Aguardando dados</li>}
           {lines.map(value => <li key={value}>{timedExample ? `Leitura: ${value}` : value}</li>)}

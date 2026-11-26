@@ -140,7 +140,7 @@ legend { margin-bottom: 8px; font-weight: 700; }
 .deck-menu nav section a { padding-left: 17px; }
 .deck-menu nav a:hover, .deck-menu nav a[aria-current] { background: var(--accent-light); }
 .fullscreen-message { position: absolute; right: 16px; top: 100%; margin: 0; padding: 10px; border-radius: 7px; background: #eeeaff; }
-.deck-stage { flex: 1; width: min(100%, 1460px); margin: 0 auto; padding: clamp(20px, 3.3vw, 48px) clamp(16px, 5vw, 75px); }
+.deck-stage { flex: 1; width: min(100%, 1460px); margin: 0 auto; padding-inline: clamp(16px, 5vw, 75px); }
 .deck-stage:focus { outline: none; }
 .deck-position { display: flex; align-items: center; gap: 14px; min-width: 0; }
 .deck-position output { white-space: nowrap; color: var(--ink); font: 750 .93rem ui-monospace, monospace; }
@@ -148,13 +148,16 @@ legend { margin-bottom: 8px; font-weight: 700; }
 .deck-position progress { width: clamp(45px, 9vw, 130px); height: 6px; accent-color: var(--accent); }
 .deck-footer { position: sticky; bottom: 0; z-index: 2; min-height: 65px; border-top: 1px solid var(--line); }
 .deck-footer button { padding: 9px 14px; }
-.slide-content[data-motion] { animation: slide-in .34s cubic-bezier(.18,.66,.26,1) both; }
-.slide-content[data-motion="forward"] { --slide-offset: clamp(38px, 7vw, 100px); }
-.slide-content[data-motion="back"] { --slide-offset: clamp(-100px, -7vw, -38px); }
-@keyframes slide-in {
-  from { opacity: .2; transform: translateX(var(--slide-offset)); }
-  to { opacity: 1; transform: translateX(0); }
-}
+.slide-viewport { display: grid; isolation: isolate; overflow: clip; overflow-clip-margin: 12px; }
+.slide-content { grid-area: 1 / 1; min-width: 0; align-self: start; padding-block: clamp(20px, 3.3vw, 48px); }
+.slide-viewport [data-phase="outgoing"] { pointer-events: none; }
+.slide-viewport[data-direction="forward"] { --turn-enter: calc(100% + 24px); --turn-exit: calc(-100% - 24px); }
+.slide-viewport[data-direction="back"] { --turn-enter: calc(-100% - 24px); --turn-exit: calc(100% + 24px); }
+.slide-viewport[data-direction] > .slide-content { animation-duration: .52s; animation-timing-function: cubic-bezier(.35,.1,.22,1); animation-fill-mode: both; }
+.slide-viewport[data-direction] > [data-phase="outgoing"] { animation-name: page-leave; }
+.slide-viewport[data-direction] > [data-phase="current"] { animation-name: page-enter; }
+@keyframes page-leave { to { transform: translateX(var(--turn-exit)); } }
+@keyframes page-enter { from { transform: translateX(var(--turn-enter)); } }
 .slide-context { display: flex; align-items: center; flex-wrap: wrap; gap: 9px 14px; margin: 0 0 13px; color: var(--accent); font-weight: 750; font-size: .9rem; }
 .slide-context span + span { border-left: 1px solid #a7afd0; padding-left: 14px; color: var(--muted); font-weight: 650; }
 :is(.deck-practice, .deck-serial, .deck-repetition) .page-title { margin-bottom: 17px; }
@@ -206,14 +209,18 @@ legend { margin-bottom: 8px; font-weight: 700; }
   .toolbar-actions { gap: 5px; }
   .presentation-mode, .deck-menu summary { padding: 6px; font-size: .8rem; }
   .deck-menu nav { right: max(-80px, calc(-100vw + 280px)); }
-  .deck-stage { padding: 20px 12px; }
+  .deck-stage { padding-inline: 12px; }
+  .slide-content { padding-block: 20px; }
   .cover-slide, .practice { grid-template-columns: 1fr; }
   .cover-slide { gap: 20px; }
   .deck-position { gap: 6px; }
   .deck-position progress { display: none; }
 }
 @media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after { animation: none !important; transition: none !important; }
+  *:not(.slide-content), *::before, *::after { animation: none !important; transition: none !important; }
+  .slide-viewport[data-direction] > .slide-content { animation-duration: .16s; }
+  .slide-viewport[data-direction] > [data-phase="outgoing"] { animation-name: page-fade-out; }
+  .slide-viewport[data-direction] > [data-phase="current"] { animation-name: page-fade-in; }
 }
 
 @media (min-width: 741px) {
@@ -263,3 +270,6 @@ legend { margin-bottom: 8px; font-weight: 700; }
 @media (max-width: 610px) {
   .summary-list, .answer-grid.compare { grid-template-columns: 1fr; }
 }
+
+@keyframes page-fade-out { to { opacity: 0; } }
+@keyframes page-fade-in { from { opacity: 0; } }
