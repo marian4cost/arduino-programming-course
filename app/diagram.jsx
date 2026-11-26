@@ -65,7 +65,7 @@ function Led({ x, y, color, level, label }) {
 }
 
 export default function Diagram({ lesson, adc, pwm, builtin, pressed, activePin, running }) {
-  const state = lesson === 'pwm' ? `LED D9 com PWM ${pwm} de 255`
+  const state = lesson === 'pwm' ? `LED amarelo em D9 com PWM ${pwm} de 255`
     : lesson === 'arrays' ? (running ? `LED ativo no pino D${activePin}` : `LED do passo no pino D${activePin}`)
     : `LED L ${builtin ? 'aceso' : 'apagado'}`;
   return <figure className="diagram" aria-label={state}>
@@ -79,7 +79,7 @@ export default function Diagram({ lesson, adc, pwm, builtin, pressed, activePin,
       </div>
       {pinPositions[lesson].map(([y, label]) => <span key={label} className="pin" style={{ '--y': y }} aria-hidden="true">{label}</span>)}
       {lesson === 'pwm' && <>
-        <Led x={383} y={79} color="#59aaff" level={pwm / 255} label="LED AZUL" />
+        <Led x={383} y={79} color="#ffd575" level={pwm / 255} label="LED AMARELO" />
         <div className="pot-part" aria-hidden="true">
           <div className="dial" style={{ '--angle': `${-135 + adc / 1023 * 270}deg` }}><i /></div>
           <span>POTENCIÔMETRO</span>

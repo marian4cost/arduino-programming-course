@@ -3,10 +3,12 @@
 import { useEffect, useEffectEvent, useRef, useState, useSyncExternalStore } from 'react';
 import Diagram from './diagram';
 import Experiment from './experiment';
+import SerialBench from './serial-bench';
+import SketchCode from './sketch-code';
 import { chapters, slides } from './slides';
 
 const slideNumber = (index) => String(index + 1).padStart(2, '0');
-const kindLabels = { theory: 'Conceito', practice: 'Bancada interativa', question: 'Questão', answer: 'Resposta' };
+const kindLabels = { theory: 'Conceito', practice: 'Bancada interativa', serial: 'Bancada interativa', repetition: 'Bancada interativa', question: 'Questão', answer: 'Resposta' };
 
 function subscribeToHash(update) {
   window.addEventListener('hashchange', update);
@@ -19,24 +21,36 @@ function getSlideIndex() {
 }
 
 function Theory({ slide }) {
-  const { title, lead, details, example, caption } = slide.theory;
+  const { title, lead, details, code, file, caption, table, everyday } = slide;
   return <article className="theory-slide">
     <h1>{title}</h1>
     <p className="slide-lead">{lead}</p>
     <div className="theory-columns">
-      <dl>{details.map(([label, text]) => <div key={label}><dt>{label}</dt><dd>{text}</dd></div>)}</dl>
-      <figure className="theory-example"><pre tabIndex="0"><code>{example}</code></pre><figcaption>{caption}</figcaption></figure>
+      <div>
+        <dl>{details.map(([label, text]) => <div key={label}><dt>{label}</dt><dd>{text}</dd></div>)}</dl>
+        <aside className="everyday"><strong>No dia a dia</strong><p>{everyday}</p></aside>
+      </div>
+      {code && <figure className="theory-example">
+        <SketchCode file={file} source={code} />
+        <figcaption>{caption}</figcaption>
+      </figure>}
+      {table && <div className="theory-table-wrap">
+        <table className="theory-table" aria-label={title}>
+          <thead><tr>{table.headers.map(header => <th key={header} scope="col">{header}</th>)}</tr></thead>
+          <tbody>{table.rows.map(([label, ...cells]) => <tr key={label}><th scope="row">{label}</th>{cells.map(cell => <td key={cell}>{cell}</td>)}</tr>)}</tbody>
+        </table>
+      </div>}
     </div>
   </article>;
 }
 
 function Question({ slide, selected, onAnswer }) {
-  const [prompt, options] = slide.question;
+  const { prompt, options } = slide.question;
   return <article className="assessment-slide">
     <form>
       <fieldset>
         <legend>{prompt}</legend>
-        <div className="assessment-options">{options.map((option, index) => {
+        <div className="assessment-options">{options.map(([option], index) => {
           const letter = String.fromCharCode(65 + index);
           return <label key={option} className={`assessment-option ${selected === index ? 'chosen' : ''}`}>
             <input type="radio" name={slide.id} checked={selected === index} onChange={() => onAnswer(index)} />
@@ -50,15 +64,46 @@ function Question({ slide, selected, onAnswer }) {
 }
 
 function Answer({ slide, selected }) {
-  const [prompt, options, correct, explanation] = slide.question;
+  const { prompt, options, correct } = slide.question;
+  const isWrong = selected !== undefined && selected !== correct;
+  const [correctLabel, correctReason] = options[correct];
   return <article className="assessment-slide answer-slide">
     <h1>{prompt}</h1>
-    <div className="answer-key">
-      <span className="option-letter" aria-hidden="true">{String.fromCharCode(65 + correct)}</span>
-      <div><p>Resposta correta</p><h2>{options[correct]}</h2></div>
+    <div className={`answer-grid ${isWrong ? 'compare' : ''}`}>
+      {isWrong && <section className="answer-option wrong-selection">
+        <p className="answer-label">Opção marcada</p>
+        <h2>{String.fromCharCode(65 + selected)}. {options[selected][0]}</h2>
+        <p>{options[selected][1]}</p>
+      </section>}
+      <section className="answer-option correct-selection">
+        <p className="answer-label">Resposta correta{selected === correct && ' · Você acertou'}</p>
+        <h2>{String.fromCharCode(65 + correct)}. {correctLabel}</h2>
+        <p>{correctReason}</p>
+      </section>
     </div>
-    <p className="slide-lead">{explanation}</p>
-    {selected !== undefined && <p className="answer-selection">{selected === correct ? 'Você acertou.' : `Sua escolha foi ${options[selected]}.`}</p>}
+  </article>;
+}
+
+function Summary({ onSelect }) {
+  return <article className="summary-slide">
+    <h1>Sumário da aula</h1>
+    <p className="slide-lead">Siga a ordem da apresentação ou abra um tema para revisar.</p>
+    <ol className="summary-list">
+      {chapters.map(chapter => <li key={chapter.id}>
+        <button onClick={() => onSelect(slides.indexOf(chapter.slides[0]))}>
+          <strong>{chapter.title}</strong><span>{chapter.summary}</span>
+        </button>
+      </li>)}
+    </ol>
+  </article>;
+}
+
+function Closing() {
+  return <article className="closing-slide">
+    <p>Minicurso com Arduino Uno</p>
+    <h1>Obrigada pela atenção!</h1>
+    <p className="presenter-name">Mariana da Costa Lisboa</p>
+    <p>Para encerrar, que tarefa do dia a dia você automatizaria com uma entrada e uma saída?</p>
   </article>;
 }
 
@@ -67,7 +112,7 @@ function Cover({ onStart }) {
     <div>
       <p className="cover-label">Minicurso com Arduino Uno</p>
       <h1>Programação<br />para Arduino</h1>
-      <p>Do primeiro LED aos vetores, com uma bancada e questões ao longo da apresentação.</p>
+      <p className="presenter-name">Mariana da Costa Lisboa</p>
       <button className="cover-start" onClick={onStart}>Começar apresentação</button>
     </div>
     <Diagram lesson="arrays" activePin={9} pressed={false} running={false} builtin={false} />
@@ -83,6 +128,9 @@ function Materials() {
       <a href="./materiais/programacao_para_arduino.pptx" download>Slides de programação para Arduino <span>PPTX</span></a>
       <a href="./materiais/sketches_minicurso_arduino.zip" download>Sketches do minicurso <span>ZIP</span></a>
       <a href="https://www.youtube.com/playlist?list=PLMAnnvw9y2UD3oDPTSq37kykjlOsob0pP">Playlist base do EngEasier <span>YOUTUBE</span></a>
+      <a href="https://docs.arduino.cc/learn/microcontrollers/digital-pins/">Arduino · Entradas e saídas digitais <span>DOCS</span></a>
+      <a href="https://docs.arduino.cc/language-reference/en/functions/communication/serial/">Arduino · Comunicação serial <span>DOCS</span></a>
+      <a href="https://docs.arduino.cc/language-reference/en/variables/utilities/sizeof/">Arduino · Operador sizeof <span>DOCS</span></a>
     </div>
   </article>;
 }
@@ -96,6 +144,10 @@ export default function Presentation() {
   const stage = useRef(null);
   const menu = useRef(null);
   const previousSlide = useRef(slide.id);
+  const [motion, setMotion] = useState({ index, direction: '' });
+  if (motion.index !== index) {
+    setMotion({ index, direction: index > motion.index ? 'forward' : 'back' });
+  }
   const lastIndex = slides.length - 1;
 
   function goTo(target) {
@@ -159,12 +211,12 @@ export default function Presentation() {
         <details className="deck-menu" ref={menu}>
           <summary>Roteiro</summary>
           <nav aria-label="Roteiro dos slides">
-            {slideLink(slides[0], 0)}
+            {slides.slice(0, 2).map((item, target) => slideLink(item, target))}
             {chapters.map(chapter => <section key={chapter.id}>
-              <h2>{chapter.label}</h2>
+              <h2>{chapter.title}</h2>
               {chapter.slides.map(item => slideLink(item, slides.indexOf(item)))}
             </section>)}
-            {slideLink(slides[lastIndex], lastIndex)}
+            {slides.slice(-2).map((item, offset) => slideLink(item, lastIndex - 1 + offset))}
           </nav>
         </details>
         <button className="presentation-mode" onClick={toggleFullscreen} aria-pressed={fullscreen}>⛶ <span>{fullscreen ? 'Sair da tela cheia' : 'Tela cheia'}</span></button>
@@ -172,14 +224,18 @@ export default function Presentation() {
       {fullscreenMessage && <p className="fullscreen-message" role="status">{fullscreenMessage}</p>}
     </header>
     <main id="main-content" className={`deck-stage deck-${slide.kind}`} ref={stage} tabIndex={-1} aria-label={`Slide ${index + 1} de ${slides.length}`}>
-      <div className="slide-content" key={slide.id}>
-        {slide.lesson && <p className="slide-context"><span>{slide.lesson.concept}</span><span>{kindLabels[slide.kind]}</span></p>}
+      <div className="slide-content" key={slide.id} data-motion={motion.direction || undefined}>
+        {slide.topic && <p className="slide-context"><span>{slide.topic}</span><span>{kindLabels[slide.kind]}</span></p>}
         {slide.kind === 'cover' && <Cover onStart={() => goTo(1)} />}
+        {slide.kind === 'summary' && <Summary onSelect={goTo} />}
         {slide.kind === 'theory' && <Theory slide={slide} />}
+        {slide.kind === 'serial' && <SerialBench timedExample />}
+        {slide.kind === 'repetition' && <SerialBench />}
         {slide.kind === 'practice' && <Experiment lesson={slide.lesson} />}
         {slide.kind === 'question' && <Question slide={slide} selected={selected} onAnswer={value => setAnswers(current => ({ ...current, [slide.questionId]: value }))} />}
         {slide.kind === 'answer' && <Answer slide={slide} selected={selected} />}
         {slide.kind === 'materials' && <Materials />}
+        {slide.kind === 'closing' && <Closing />}
       </div>
     </main>
     <footer className="deck-footer">
